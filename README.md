@@ -4,6 +4,12 @@ This is ROS-noetic-YOLOv8 package. I couldn't make other nessesarry directries b
 ## detect.py
  This is yolov8_ros main scripts.
 
+
+### rosrun
+```
+rosrun yolov8_ros detect.py image:=<TOPIC>
+```
+### Topic
 - **Subscribe**<br>
     Image
 - **Publish**<br>
