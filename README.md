@@ -13,6 +13,17 @@ cd PATH/TO/WORKSPACE/SRC/
 ```
 git clone https://github.com/ASAKA-219/yolov8_ros
 ```
+If you don't install Image msg publish pkg. You can Install
+[usb_cam pkg]()
+automatically.
+```
+cd PATH/TO/WORKSPACE/
+rosdep install --from-paths src --ignore-src --rosdistro $ROSDISTRO -y
+```
+build package
+```
+catkin build
+```
 
 ## detect.py
  This is yolov8_ros main scripts.
