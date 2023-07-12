@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 from sensor_msgs.msg import Image
 from yolov8_ros_msgs.msg import BoundingBox, BoundingBoxes
+from std_msgs.msg import Header
 from ultralytics import YOLO
 import ultralytics
 import rospy
@@ -67,6 +68,7 @@ if __name__ == "__main__":
                     bb.Class = cls
                     bb.id = int(result.boxes.cls[i])
                     bb.probability = 0
+                    bb.header.frame_id = str(bb.id)+"_"+cls
 
                     bb_pub.publish(bb)
                     bbs_list.append(bb)
@@ -83,4 +85,5 @@ if __name__ == "__main__":
         rospy.spin()
 
     except rospy.ROSInterruptException:
+        rospy.loginfo("yolo_v8 done")
         pass
