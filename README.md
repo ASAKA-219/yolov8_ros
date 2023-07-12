@@ -42,6 +42,8 @@ rosrun yolov8_ros detect.py image:=<TOPIC>
 ## Publish
 
 - **yolov8_ros/detect_img**<br>
+- **yolov8_ros/bounding_box**<br>
+- **yolov8_ros/bounding_boxes**<br>
 
 src :<br>
 https://github.com/ultralytics/ultralytics
