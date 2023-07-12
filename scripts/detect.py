@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 from sensor_msgs.msg import Image
-from yolov8_ros_msgs.msg import BoundingBox
+from yolov8_ros_msgs.msg import BoundingBox, BoundingBoxes
 from ultralytics import YOLO
+import ultralytics
 import rospy
 import cv2
 import numpy as np
@@ -19,17 +20,20 @@ if __name__ == "__main__":
 
         img_pub = rospy.Publisher("yolo_v8/detect_img", Image, queue_size=10)
         bb_pub = rospy.Publisher("yolo_v8/boudingbox", BoundingBox, queue_size=10)
+        bbs_pub = rospy.Publisher("yolo_v8/boudingboxes", BoundingBoxes, queue_size=10)
 
         bb = BoundingBox()
+        bbs = BoundingBoxes()
 
         def img_callback(msg):
+            bbs_list = []
             if msg is None:
                 rospy.loginfo("None data")
 
             img=bridge.imgmsg_to_cv2(msg)
             img=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             results = model.predict(source=img)  # save predictions as labels
-            #print(results)
+            #print(results[0].orig_img)
             class_names=results[0].names
             for result in results:
                 # Detection
@@ -47,7 +51,6 @@ if __name__ == "__main__":
                 #result.masks.xyn       # x,y segments (normalized), List[segment] * N
 
                 # Classification
-                print(result.probs)     # cls prob, (num_class, )
                 for i,bbox in enumerate(result.boxes.xyxy):
                     x1,y1,x2,y2=bbox
                     color = list(np.random.random(size=3) * 256)
@@ -55,10 +58,7 @@ if __name__ == "__main__":
                     img=cv2.rectangle(img, (int(x1),int(y1)), (int(x2),int(y2)),color=color)
 
                     cls=class_names[result.boxes.cls[i]]
-                    print(cls)
                     img=cv2.putText(img,cls, (int(x1),int(y1)),cv2.FONT_HERSHEY_PLAIN,1,color=color)
-
-                    print(result.boxes.cls[i])
 
                     bb.xmin = int(x1)
                     bb.ymin = int(y1)
@@ -69,10 +69,13 @@ if __name__ == "__main__":
                     bb.probability = 0
 
                     bb_pub.publish(bb)
+                    bbs_list.append(bb)
+                
+                bbs.bounding_boxes = bbs_list
+                bbs_pub.publish(bbs)
                     
-            img_msg = bridge.cv2_to_imgmsg(img, encoding="bgr8")
+            img_msg = bridge.cv2_to_imgmsg(results[0].plot(), encoding="bgr8")
             img_pub.publish(img_msg)
-
 
         #rospy.Publisher()
         rospy.loginfo("yolo_v8 start")
