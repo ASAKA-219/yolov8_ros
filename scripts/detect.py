@@ -74,6 +74,8 @@ if __name__ == "__main__":
                     bbs_list.append(bb)
                 
                 bbs.bounding_boxes = bbs_list
+                bbs.image_header.frame_id = ""
+                #bb.header.stamp = bbs.header.stamp = bbs.image_header.stamp = rospy.get_time()
                 bbs_pub.publish(bbs)
                     
             img_msg = bridge.cv2_to_imgmsg(results[0].plot(), encoding="bgr8")
