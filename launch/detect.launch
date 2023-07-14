@@ -2,6 +2,7 @@
 <launch>
   <arg name="camera_path" default="/dev/video0"/>
   <arg name="image_topic" default="/usb_cam/image_raw"/>
+  <arg name="caminfo_topic" default="/usb_cam/camera_info"/>
 
   <node pkg="voicevox_ros" name="voicevox_ros_main" type="main.py"/>
 
@@ -12,5 +13,5 @@
 	<param name="pixel_format" value="yuyv" />
 	<param name="color_format" value="yuv422p" />
   </node>
-  <node pkg="yolov8_ros" name="yolov8_ros_detect" type="detect.py" args="image:=$(arg image_topic)" output="screen"/>
+  <node pkg="yolov8_ros" name="yolov8_ros_detect" type="detect.py" args="image:=$(arg image_topic) image_info:=$(arg caminfo_topic)" output="screen"/>
 </launch>

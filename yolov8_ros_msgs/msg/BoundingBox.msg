@@ -5,4 +5,4 @@ int64 ymin
 int64 xmax
 int64 ymax
 int16 id
-string Class
+string class_name

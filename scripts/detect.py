@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from yolov8_ros_msgs.msg import BoundingBox, BoundingBoxes
 from std_msgs.msg import Header
 from ultralytics import YOLO
-import ultralytics
+
 import rospy
+import tf
 import cv2
 import numpy as np
 from cv_bridge import CvBridge
@@ -20,24 +21,36 @@ if __name__ == "__main__":
         #im2 = cv2.imread("bus.jpg")
 
         img_pub = rospy.Publisher("yolo_v8/detect_img", Image, queue_size=10)
+        img_info_pub = rospy.Publisher("yolo_v8/camera_info", CameraInfo, queue_size=10)
         bb_pub = rospy.Publisher("yolo_v8/boudingbox", BoundingBox, queue_size=10)
         bbs_pub = rospy.Publisher("yolo_v8/boudingboxes", BoundingBoxes, queue_size=10)
 
         bb = BoundingBox()
         bbs = BoundingBoxes()
+        detect_img = Image()
+        img_info = CameraInfo()
+
+        camera_frame = ""
+
+        def info_callback(msg):
+            global camera_frame, img_info
+            camera_frame = msg.header.frame_id
+            img_info = msg
 
         def img_callback(msg):
             bbs_list = []
-            if msg is None:
+            if msg is None and camera_frame == "":
                 rospy.loginfo("None data")
 
             img=bridge.imgmsg_to_cv2(msg)
             img=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            results = model.predict(source=img)  # save predictions as labels
+            results = model.predict(source=img, conf=0.5)  # save predictions as labels
             #print(results[0].orig_img)
             class_names=results[0].names
             for result in results:
                 # Detection
+                result = result.cuda()
+                prop = result.boxes.conf
                 result = result.cpu()
                 result = result.numpy()
                 result.boxes.xyxy   # box with xyxy format, (N, 4)
@@ -52,7 +65,16 @@ if __name__ == "__main__":
                 #result.masks.xyn       # x,y segments (normalized), List[segment] * N
 
                 # Classification
+                probs = result.probs
+                #print(result.probs, result.boxes.cls )
+
+                """
+                for i in probs:
+                    print(i)
+                """
+                    
                 for i,bbox in enumerate(result.boxes.xyxy):
+                    #print(result.boxes.xyxy)
                     x1,y1,x2,y2=bbox
                     color = list(np.random.random(size=3) * 256)
                     
@@ -65,24 +87,27 @@ if __name__ == "__main__":
                     bb.ymin = int(y1)
                     bb.xmax = int(x2)
                     bb.ymax = int(y2)
-                    bb.Class = cls
+                    bb.class_name = cls
                     bb.id = int(result.boxes.cls[i])
-                    bb.probability = 0
+                    bb.probability = prop[i]
                     bb.header.frame_id = str(bb.id)+"_"+cls
 
                     bb_pub.publish(bb)
                     bbs_list.append(bb)
                 
                 bbs.bounding_boxes = bbs_list
-                bbs.image_header.frame_id = ""
-                #bb.header.stamp = bbs.header.stamp = bbs.image_header.stamp = rospy.get_time()
+                bbs.image_header.frame_id = camera_frame
+                bb.header.stamp.secs = bbs.header.stamp.secs = bbs.image_header.stamp.secs = int(rospy.get_time())
                 bbs_pub.publish(bbs)
-                    
-            img_msg = bridge.cv2_to_imgmsg(results[0].plot(), encoding="bgr8")
-            img_pub.publish(img_msg)
+            
+            detect_img = bridge.cv2_to_imgmsg(results[0].plot(), encoding="bgr8")
+            detect_img.header.frame_id = "yolov8_img"
+            img_pub.publish(detect_img)
+            img_info_pub.publish(img_info)
 
         #rospy.Publisher()
         rospy.loginfo("yolo_v8 start")
+        rospy.Subscriber("image_info", CameraInfo, info_callback)
         rospy.Subscriber("image", Image, img_callback)
         rospy.spin()
 
